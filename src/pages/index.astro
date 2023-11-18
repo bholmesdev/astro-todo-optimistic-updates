@@ -2,11 +2,12 @@
 import Card from "../components/Card.astro";
 import Layout from "../layouts/Layout.astro";
 import { todos, type Todo } from "../store";
+import { sleep } from "../utils";
 
 let newTodo: Todo | undefined;
 
 if (Astro.request.method === "POST") {
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  await sleep(1000);
 
   const formData = await Astro.request.formData();
   const text = formData.get("todo");
@@ -31,7 +32,7 @@ if (Astro.request.method === "POST") {
       newTodo?.text
     )});`}
   >
-    <h1>Welcome to <span class="text-gradient">Astro</span></h1>
+    <h1>Welcome to <span class="text-gradient">do</span></h1>
     <form method="POST" @submit.prevent=`submit` data-astro-reload>
       <input
         transition:persist
