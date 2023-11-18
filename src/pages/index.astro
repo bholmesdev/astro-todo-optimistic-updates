@@ -1,17 +1,25 @@
 ---
 import Card from "../components/Card.astro";
 import Layout from "../layouts/Layout.astro";
-import { todos } from "../store";
+import { todos, type Todo } from "../store";
 
-let todo: string | undefined;
+let newTodo: Todo | undefined;
 
 if (Astro.request.method === "POST") {
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
   const formData = await Astro.request.formData();
-  const todoData = formData.get("todo");
-  if (typeof todoData === "string") {
-    todo = todoData;
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    todos.push(todo);
+  const text = formData.get("todo");
+  if (typeof text === "string") {
+    if (formData.has("completed")) {
+      const match = todos.find((t) => t.text === text);
+      if (match) {
+        match.completed = formData.get("completed") === "true";
+      }
+    } else {
+      newTodo = { text, completed: false };
+      todos.push(newTodo);
+    }
   }
 }
 ---
@@ -19,7 +27,9 @@ if (Astro.request.method === "POST") {
 <Layout title="Welcome to Astro.">
   <main
     x-data="form"
-    x-init=`$store.optimisticTodos = $store.optimisticTodos.filter((t) => t !== ${JSON.stringify(todo)});`
+    x-init={`$store.optimisticTodos = $store.optimisticTodos.filter((t) => t !== ${JSON.stringify(
+      newTodo?.text
+    )});`}
   >
     <h1>Welcome to <span class="text-gradient">Astro</span></h1>
     <form method="POST" @submit.prevent=`submit` data-astro-reload>
@@ -39,97 +49,126 @@ if (Astro.request.method === "POST") {
         </Card>
       </template>
       {
-        todos.map((todo) => (
-          <Card
-            x-data="{completed: false}"
-            @click={`completed = true; complete(${JSON.stringify(todo)})`}
-            x-show="!completed"
-            style={{ viewTransitionName: todo }}
-          >
-            <p slot="body">{todo}</p>
-          </Card>
-        ))
+        todos
+          .filter((t) => !t.completed)
+          .map((todo) => (
+            <Card
+              x-data="{completed: false}"
+              x-on:click={`completed = true; complete(${JSON.stringify(
+                todo.text
+              )}, completed)`}
+              style={{ viewTransitionName: todo.text }}
+            >
+              <p slot="body" x-bind:class="{ 'line-through': completed }">
+                {todo.text}
+              </p>
+            </Card>
+          ))
+      }
+    </ul>
+    <h2 class="mt-5 mb-3 font-bold text-xl">Completed</h2>
+    <ul class="flex flex-col gap-3">
+      {
+        todos
+          .filter((todo) => todo.completed)
+          .map((todo) => (
+            <Card
+              x-data="{completed: true}"
+              x-on:click={`completed = false; complete(${JSON.stringify(
+                todo.text
+              )}, completed)`}
+              style={{ viewTransitionName: todo.text }}
+            >
+              <p slot="body" x-bind:class="{ 'line-through': completed }">
+                {todo.text}
+              </p>
+            </Card>
+          ))
       }
     </ul>
   </main>
+
+  <script>
+    import Alpine from "alpinejs";
+    import { navigate } from "astro:transitions/client";
+
+    Alpine.store("optimisticTodos", []);
+
+    Alpine.data("form", () => {
+      return {
+        submit() {
+          const formEl = this.$el as HTMLFormElement;
+          const formData = new FormData(formEl);
+          const todo = formData.get("todo");
+          if (typeof todo === "string") {
+            this.$store.optimisticTodos = [
+              ...this.$store.optimisticTodos,
+              todo,
+            ];
+            formEl.reset();
+            navigate(location.pathname, { formData });
+          }
+        },
+        complete(todo: string, completed: boolean) {
+          const formData = new FormData();
+          formData.append("todo", todo);
+          formData.append("completed", completed ? "true" : "false");
+          navigate(window.location.pathname, { formData });
+        },
+      };
+    });
+  </script>
+
+  <style>
+    main {
+      margin: auto;
+      padding: 1rem;
+      width: 800px;
+      max-width: calc(100% - 2rem);
+      color: white;
+      font-size: 20px;
+      line-height: 1.6;
+    }
+    h1 {
+      font-size: 4rem;
+      font-weight: 700;
+      line-height: 1;
+      text-align: center;
+      margin-bottom: 1em;
+    }
+    .text-gradient {
+      background-image: var(--accent-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-size: 400%;
+      background-position: 0%;
+    }
+    .instructions {
+      margin-bottom: 2rem;
+      border: 1px solid rgba(var(--accent-light), 25%);
+      background: linear-gradient(
+        rgba(var(--accent-dark), 66%),
+        rgba(var(--accent-dark), 33%)
+      );
+      padding: 1.5rem;
+      border-radius: 8px;
+    }
+    .instructions code {
+      font-size: 0.8em;
+      font-weight: bold;
+      background: rgba(var(--accent-light), 12%);
+      color: rgb(var(--accent-light));
+      border-radius: 4px;
+      padding: 0.3em 0.4em;
+    }
+    .instructions strong {
+      color: rgb(var(--accent-light));
+    }
+    .link-card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(24ch, 1fr));
+      gap: 2rem;
+      padding: 0;
+    }
+  </style>
 </Layout>
-
-<script>
-  import Alpine from "alpinejs";
-  import { navigate } from "astro:transitions/client";
-
-  Alpine.store("optimisticTodos", []);
-
-  Alpine.data("form", () => {
-    return {
-      submit() {
-        const formEl = this.$el as HTMLFormElement;
-        const formData = new FormData(formEl);
-        const todo = formData.get("todo");
-        if (typeof todo === "string") {
-          this.$store.optimisticTodos = [...this.$store.optimisticTodos, todo];
-          formEl.reset();
-          navigate(location.pathname, { formData });
-        }
-      },
-      complete(todo: string) {
-        const data = new FormData();
-        data.append("todo", todo);
-        fetch("/todos", { method: "PATCH", body: data });
-      },
-    };
-  });
-</script>
-
-<style>
-  main {
-    margin: auto;
-    padding: 1rem;
-    width: 800px;
-    max-width: calc(100% - 2rem);
-    color: white;
-    font-size: 20px;
-    line-height: 1.6;
-  }
-  h1 {
-    font-size: 4rem;
-    font-weight: 700;
-    line-height: 1;
-    text-align: center;
-    margin-bottom: 1em;
-  }
-  .text-gradient {
-    background-image: var(--accent-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-size: 400%;
-    background-position: 0%;
-  }
-  .instructions {
-    margin-bottom: 2rem;
-    border: 1px solid rgba(var(--accent-light), 25%);
-    background: linear-gradient(
-      rgba(var(--accent-dark), 66%),
-      rgba(var(--accent-dark), 33%)
-    );
-    padding: 1.5rem;
-    border-radius: 8px;
-  }
-  .instructions code {
-    font-size: 0.8em;
-    font-weight: bold;
-    background: rgba(var(--accent-light), 12%);
-    color: rgb(var(--accent-light));
-    border-radius: 4px;
-    padding: 0.3em 0.4em;
-  }
-  .instructions strong {
-    color: rgb(var(--accent-light));
-  }
-  .link-card-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(24ch, 1fr));
-    gap: 2rem;
-    padding: 0;
-  }
-</style>
