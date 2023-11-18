@@ -1,7 +1,7 @@
 ---
 import Card from "../components/Card.astro";
 import Layout from "../layouts/Layout.astro";
-import { shuffleTodos, todos } from "../store";
+import { todos } from "../store";
 
 let todo: string | undefined;
 
@@ -37,11 +37,8 @@ if (Astro.request.method === "POST") {
       <button type="submit">Add</button>
     </form>
     <ul class="flex flex-col gap-3">
-      <template x-for="todo in $store.optimisticTodos" :key="todo">
-        <Card
-          :style={`{viewTransitionName: todo}`}
-          class="link-card opacity-50"
-        >
+      <template x-for="todo in $store.optimisticTodos">
+        <Card :style={`{viewTransitionName: todo}`} class="opacity-50">
           <p x-text="todo" slot="body"></p>
         </Card>
       </template>
