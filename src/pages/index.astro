@@ -18,17 +18,13 @@ if (Astro.request.method === "POST") {
 
 <Layout title="Welcome to Astro.">
   <main
-    x-data={`form()`}
+    x-data="form"
     x-init=`$store.optimisticTodos = $store.optimisticTodos.filter((t) => t !== ${JSON.stringify(todo)});`
   >
     <h1>Welcome to <span class="text-gradient">Astro</span></h1>
-    <form
-      transition:persist
-      method="POST"
-      @submit.prevent=`submit`
-      data-astro-reload
-    >
+    <form method="POST" @submit.prevent=`submit` data-astro-reload>
       <input
+        transition:persist
         class="bg-gray-950"
         name="todo"
         type="text"
@@ -44,7 +40,12 @@ if (Astro.request.method === "POST") {
       </template>
       {
         todos.map((todo) => (
-          <Card style={{ viewTransitionName: todo }}>
+          <Card
+            x-data="{completed: false}"
+            @click={`completed = true; complete(${JSON.stringify(todo)})`}
+            x-show="!completed"
+            style={{ viewTransitionName: todo }}
+          >
             <p slot="body">{todo}</p>
           </Card>
         ))
@@ -70,6 +71,11 @@ if (Astro.request.method === "POST") {
           formEl.reset();
           navigate(location.pathname, { formData });
         }
+      },
+      complete(todo: string) {
+        const data = new FormData();
+        data.append("todo", todo);
+        fetch("/todos", { method: "PATCH", body: data });
       },
     };
   });
