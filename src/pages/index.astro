@@ -44,7 +44,7 @@ if (Astro.request.method === "POST") {
       </template>
       {
         todos.map((todo) => (
-          <Card style={`view-transition-name: ${todo}`}>
+          <Card style={{ viewTransitionName: todo }}>
             <p slot="body">{todo}</p>
           </Card>
         ))
