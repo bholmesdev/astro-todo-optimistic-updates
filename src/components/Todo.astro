@@ -1,0 +1,22 @@
+---
+import type { Todo } from "../store";
+import { xd } from "../utils";
+import Card from "./Card.astro";
+
+type Props = Todo;
+
+const { text, completed } = Astro.props;
+---
+
+<Card
+  @click={`complete(${xd(text)}, ${xd(!completed)})`}
+  style={{ viewTransitionName: text }}
+>
+  <p
+    slot="body"
+    class:list={[completed && "line-through"]}
+    :class={`{ 'line-through': $store.completedTodos.has(${xd(text)}) }`}
+  >
+    {text}
+  </p>
+</Card>
