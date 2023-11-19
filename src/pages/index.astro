@@ -40,7 +40,6 @@ if (Astro.request.method === "POST") {
 
 <Layout title="Welcome to Astro.">
   <main
-    x-data="form"
     x-init={`$store.optimisticCreates = $store.optimisticCreates.filter((t) => t.id !== ${xd(
       createdTodo?.id
     )});
@@ -52,6 +51,7 @@ if (Astro.request.method === "POST") {
     <h1>Welcome to <span class="text-gradient">do</span></h1>
     <form
       transition:persist
+      x-data="form"
       method="POST"
       @submit.prevent=`submit`
       data-astro-reload
