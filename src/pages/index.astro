@@ -28,6 +28,10 @@ if (Astro.request.method === "POST") {
 
       match.text = update.text ?? match.text;
       match.completed = update.completed ?? match.completed;
+      // Sort update to top of the array for less layout shift
+      todos.splice(todos.indexOf(match), 1);
+      todos.unshift(match);
+
       updatedTodo = match;
       break;
   }
@@ -69,12 +73,7 @@ if (Astro.request.method === "POST") {
       Completed
     </h2>
     <ul class="flex flex-col gap-3">
-      {
-        todos
-          .filter((t) => t.completed)
-          .toReversed()
-          .map((todo) => <Todo {...todo} />)
-      }
+      {todos.filter((t) => t.completed).map((todo) => <Todo {...todo} />)}
     </ul>
   </main>
 
