@@ -2,7 +2,7 @@
 import Card from "../components/Card.astro";
 import Layout from "../layouts/Layout.astro";
 import { todos, type Todo } from "../store";
-import { sleep } from "../utils";
+import { sleep, xd } from "../utils";
 
 let newTodo: Todo | undefined;
 
@@ -28,9 +28,13 @@ if (Astro.request.method === "POST") {
 <Layout title="Welcome to Astro.">
   <main
     x-data="form"
-    x-init={`$store.optimisticTodos = $store.optimisticTodos.filter((t) => t !== ${JSON.stringify(
+    x-init={`$store.optimisticTodos = $store.optimisticTodos.filter((t) => t !== ${xd(
       newTodo?.text
-    )});`}
+    )});
+    $store.completedTodos = new Set(${xd(
+      todos.filter((t) => t.completed).map((t) => t.text)
+    )});
+    `}
   >
     <h1>Welcome to <span class="text-gradient">do</span></h1>
     <form method="POST" @submit.prevent=`submit` data-astro-reload>
@@ -44,28 +48,30 @@ if (Astro.request.method === "POST") {
       <button type="submit">Add</button>
     </form>
     <ul class="flex flex-col gap-3">
-      <template x-for="todo in $store.optimisticTodos">
-        <Card :style={`{viewTransitionName: todo}`} class="opacity-50">
-          <p x-text="todo" slot="body"></p>
-        </Card>
-      </template>
       {
         todos
           .filter((t) => !t.completed)
           .map((todo) => (
             <Card
-              x-data="{completed: false}"
-              x-on:click={`completed = true; complete(${JSON.stringify(
-                todo.text
-              )}, completed)`}
+              x-on:click={`complete(${xd(todo.text)}, true)`}
               style={{ viewTransitionName: todo.text }}
             >
-              <p slot="body" x-bind:class="{ 'line-through': completed }">
+              <p
+                slot="body"
+                x-bind:class={`{ 'line-through': $store.completedTodos.has(${xd(
+                  todo.text
+                )}) }`}
+              >
                 {todo.text}
               </p>
             </Card>
           ))
       }
+      <template x-for="todo in $store.optimisticTodos">
+        <Card :style={`{viewTransitionName: todo}`} class="opacity-50">
+          <p x-text="todo" slot="body"></p>
+        </Card>
+      </template>
     </ul>
     <h2 class="mt-5 mb-3 font-bold text-xl">Completed</h2>
     <ul class="flex flex-col gap-3">
@@ -74,13 +80,16 @@ if (Astro.request.method === "POST") {
           .filter((todo) => todo.completed)
           .map((todo) => (
             <Card
-              x-data="{completed: true}"
-              x-on:click={`completed = false; complete(${JSON.stringify(
-                todo.text
-              )}, completed)`}
+              x-on:click={`complete(${xd(todo.text)}, false)`}
               style={{ viewTransitionName: todo.text }}
             >
-              <p slot="body" x-bind:class="{ 'line-through': completed }">
+              <p
+                slot="body"
+                class="line-through"
+                x-bind:class={`{ 'line-through': $store.completedTodos.has(${xd(
+                  todo.text
+                )}) }`}
+              >
                 {todo.text}
               </p>
             </Card>
@@ -94,6 +103,7 @@ if (Astro.request.method === "POST") {
     import { navigate } from "astro:transitions/client";
 
     Alpine.store("optimisticTodos", []);
+    Alpine.store("completedTodos", new Set());
 
     Alpine.data("form", () => {
       return {
@@ -103,7 +113,7 @@ if (Astro.request.method === "POST") {
           const todo = formData.get("todo");
           if (typeof todo === "string") {
             this.$store.optimisticTodos = [
-              ...this.$store.optimisticTodos,
+              ...(this.$store.optimisticTodos as string[]),
               todo,
             ];
             formEl.reset();
@@ -111,6 +121,12 @@ if (Astro.request.method === "POST") {
           }
         },
         complete(todo: string, completed: boolean) {
+          const completedTodos = this.$store.completedTodos as Set<string>;
+          if (completed) {
+            completedTodos.add(todo);
+          } else {
+            completedTodos.delete(todo);
+          }
           const formData = new FormData();
           formData.append("todo", todo);
           formData.append("completed", completed ? "true" : "false");
