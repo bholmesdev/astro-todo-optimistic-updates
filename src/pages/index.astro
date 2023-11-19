@@ -64,7 +64,9 @@ if (Astro.request.method === "POST") {
         </Card>
       </template>
     </ul>
-    <h2 class="mt-5 mb-3 font-bold text-xl">Completed</h2>
+    <h2 transition:name="completed-heading" class="mt-5 mb-3 font-bold text-xl">
+      Completed
+    </h2>
     <ul class="flex flex-col gap-3">
       {
         todos
