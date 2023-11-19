@@ -5,13 +5,13 @@ import Card from "./Card.astro";
 
 type Props = Todo;
 
-const { text, completed } = Astro.props;
+const { id, text, completed } = Astro.props;
 ---
 
 <Card
-  x-data={`todo(${xd({ text, completed })})`}
+  x-data={`todo(${xd({ id, text, completed })})`}
   @click="toggleCompleted"
-  style={{ viewTransitionName: text }}
+  style={{ viewTransitionName: id }}
 >
   <p
     slot="body"
@@ -32,24 +32,25 @@ const { text, completed } = Astro.props;
   import { navigate } from "astro:transitions/client";
 
   Alpine.data("todo", (todo) => {
-    const { text, completed: initialCompleted } = todo as Todo;
+    const { id, text, completed: initialCompleted } = todo as Todo;
     return {
       toggleCompleted() {
         const optimisticUpdates = this.$store.optimisticUpdates as Todo[];
-        if (optimisticUpdates.find((t) => t.text === text)) {
+        if (optimisticUpdates.find((t) => t.id === id)) {
           // Don't allow multiple optimistic updates on same todo
           return;
         }
         const completed = !initialCompleted;
-        optimisticUpdates.push({ text, completed });
+        optimisticUpdates.push({ id, text, completed });
         const formData = new FormData();
-        formData.append("todo", text);
+        formData.append("type", "update");
+        formData.append("id", id);
         formData.append("completed", completed ? "true" : "false");
         navigate(window.location.pathname, { formData });
       },
       findOptimistic() {
         const optimisticUpdates = this.$store.optimisticUpdates as Todo[];
-        return optimisticUpdates.find((t) => t.text === text);
+        return optimisticUpdates.find((t) => t.id === id);
       },
     };
   });

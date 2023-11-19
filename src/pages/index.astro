@@ -2,8 +2,8 @@
 import Card from "../components/Card.astro";
 import Todo from "../components/Todo.astro";
 import Layout from "../layouts/Layout.astro";
-import { todos, type Todo as TodoType } from "../store";
-import { sleep, xd } from "../utils";
+import { formDataSchema, todos, type Todo as TodoType } from "../store";
+import { genId, parseFormData, sleep, xd } from "../utils";
 
 let createdTodo: TodoType | undefined;
 let updatedTodo: TodoType | undefined;
@@ -12,18 +12,23 @@ if (Astro.request.method === "POST") {
   await sleep(1000);
 
   const formData = await Astro.request.formData();
-  const text = formData.get("todo");
-  if (typeof text === "string") {
-    if (formData.has("completed")) {
-      const match = todos.find((t) => t.text === text);
-      if (match) {
-        match.completed = formData.get("completed") === "true";
-        updatedTodo = match;
-      }
-    } else {
-      createdTodo = { text, completed: false };
+  const payload = parseFormData(formData, formDataSchema);
+
+  switch (payload.type) {
+    case "create":
+      // TODO: sanitize client id
+      createdTodo = { ...payload, id: payload.id ?? genId(), completed: false };
       todos.push(createdTodo);
-    }
+      break;
+    case "update":
+      const { id, ...update } = payload;
+      const match = todos.find((t) => t.id === id);
+      if (!match) return;
+
+      match.text = update.text ?? match.text;
+      match.completed = update.completed ?? match.completed;
+      updatedTodo = match;
+      break;
   }
 }
 ---
@@ -31,11 +36,11 @@ if (Astro.request.method === "POST") {
 <Layout title="Welcome to Astro.">
   <main
     x-data="form"
-    x-init={`$store.optimisticCreates = $store.optimisticCreates.filter((t) => t !== ${xd(
-      createdTodo?.text
+    x-init={`$store.optimisticCreates = $store.optimisticCreates.filter((t) => t.id !== ${xd(
+      createdTodo?.id
     )});
-    $store.optimisticUpdates = $store.optimisticUpdates.filter((t) => t.text !== ${xd(
-      updatedTodo?.text
+    $store.optimisticUpdates = $store.optimisticUpdates.filter((t) => t.id !== ${xd(
+      updatedTodo?.id
     )});
     `}
   >
@@ -44,17 +49,18 @@ if (Astro.request.method === "POST") {
       <input
         transition:persist
         class="bg-gray-950"
-        name="todo"
+        name="text"
         type="text"
         placeholder="Add a todo"
       />
+      <input type="hidden" name="type" value="create" />
       <button type="submit">Add</button>
     </form>
     <ul class="flex flex-col gap-3">
       {todos.filter((t) => !t.completed).map((todo) => <Todo {...todo} />)}
       <template x-for="todo in $store.optimisticCreates">
-        <Card :style={`{viewTransitionName: todo}`} class="opacity-50">
-          <p x-text="todo" slot="body"></p>
+        <Card :style={`{viewTransitionName: todo.id}`} class="opacity-50">
+          <p x-text="todo.text" slot="body"></p>
         </Card>
       </template>
     </ul>
@@ -68,6 +74,7 @@ if (Astro.request.method === "POST") {
     import Alpine from "alpinejs";
     import { navigate } from "astro:transitions/client";
     import type { Todo } from "../store";
+    import { genId } from "../utils";
 
     // stores stick around between renders
     // we'll need that to avoid overriding optimistic
@@ -80,18 +87,19 @@ if (Astro.request.method === "POST") {
         submit() {
           const formEl = this.$el as HTMLFormElement;
           const formData = new FormData(formEl);
-          const todo = formData.get("todo");
-          if (typeof todo === "string") {
-            // TODO: key generation
-            // we're using the todo's text as a key.
-            // we could obviously have risk of duplicates!
-            this.$store.optimisticCreates = [
-              ...(this.$store.optimisticCreates as string[]),
-              todo,
-            ];
-            formEl.reset();
-            navigate(location.pathname, { formData });
-          }
+          const text = formData.get("text");
+          if (typeof text !== "string") return;
+
+          const id = genId();
+          formData.append("id", id);
+
+          const todo: Todo = { id, text, completed: false };
+          this.$store.optimisticCreates = [
+            ...(this.$store.optimisticCreates as Todo[]),
+            todo,
+          ];
+          formEl.reset();
+          navigate(location.pathname, { formData });
         },
       };
     });
