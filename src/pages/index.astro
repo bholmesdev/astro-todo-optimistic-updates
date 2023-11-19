@@ -50,9 +50,13 @@ if (Astro.request.method === "POST") {
     `}
   >
     <h1>Welcome to <span class="text-gradient">do</span></h1>
-    <form method="POST" @submit.prevent=`submit` data-astro-reload>
+    <form
+      transition:persist
+      method="POST"
+      @submit.prevent=`submit`
+      data-astro-reload
+    >
       <input
-        transition:persist
         class="bg-gray-950"
         name="text"
         type="text"
