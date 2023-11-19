@@ -66,7 +66,12 @@ if (Astro.request.method === "POST") {
     </ul>
     <h2 class="mt-5 mb-3 font-bold text-xl">Completed</h2>
     <ul class="flex flex-col gap-3">
-      {todos.filter((t) => t.completed).map((todo) => <Todo {...todo} />)}
+      {
+        todos
+          .filter((t) => t.completed)
+          .toReversed()
+          .map((todo) => <Todo {...todo} />)
+      }
     </ul>
   </main>
 
