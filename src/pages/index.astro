@@ -34,7 +34,6 @@ if (Astro.request.method === "POST") {
     )});
     `}
   >
-    <div transition:persist></div>
     <h1>Welcome to <span class="text-gradient">do</span></h1>
     <form method="POST" @submit.prevent=`submit` data-astro-reload>
       <input
