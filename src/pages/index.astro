@@ -16,7 +16,8 @@ if (Astro.request.method === "POST") {
 
   switch (payload.type) {
     case "create":
-      // TODO: sanitize client id
+      // TODO: separate `viewId` from `id`
+      // So we don't need to trust client ids
       createdTodo = { ...payload, id: payload.id ?? genId(), completed: false };
       todos.push(createdTodo);
       break;
