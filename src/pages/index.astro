@@ -32,18 +32,18 @@ if (Astro.request.method === "POST") {
     x-init={`$store.optimisticTodos = $store.optimisticTodos.filter((t) => t !== ${xd(
       newTodo?.text
     )});
-    const serverCompleted = ${xd(
-      todos.filter((t) => t.completed).map((t) => t.text)
-    )};
-    for (const todo of serverCompleted) {
-      $store.completedTodos.add(todo);
-    }
     `}
   >
+    <div transition:persist></div>
     <h1>Welcome to <span class="text-gradient">do</span></h1>
     <form method="POST" @submit.prevent=`submit` data-astro-reload>
       <input
         transition:persist
+        x-init={`
+          $store.completedTodos = new Set(${xd(
+            todos.filter((t) => t.completed)
+          )});
+        `}
         class="bg-gray-950"
         name="todo"
         type="text"
