@@ -28,9 +28,9 @@ if (Astro.request.method === "POST") {
 
       match.text = update.text ?? match.text;
       match.completed = update.completed ?? match.completed;
-      // Sort update to top of the array for less layout shift
+      // Sort updates for minimum layout shift
       todos.splice(todos.indexOf(match), 1);
-      todos.unshift(match);
+      match.completed ? todos.unshift(match) : todos.push(match);
 
       updatedTodo = match;
       break;
