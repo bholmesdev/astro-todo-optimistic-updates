@@ -76,92 +76,92 @@ if (Astro.request.method === "POST") {
       {todos.filter((t) => t.completed).map((todo) => <Todo {...todo} />)}
     </ul>
   </main>
-
-  <script>
-    import Alpine from "alpinejs";
-    import { navigate } from "astro:transitions/client";
-    import type { Todo } from "../store";
-    import { genId } from "../utils";
-
-    // stores stick around between renders
-    // we'll need that to avoid overriding optimistic
-    // or completed todos from the server results
-    Alpine.store("optimisticCreates", []);
-    Alpine.store("optimisticUpdates", []);
-
-    Alpine.data("form", () => {
-      return {
-        submit() {
-          const formEl = this.$el as HTMLFormElement;
-          const formData = new FormData(formEl);
-          const text = formData.get("text");
-          if (typeof text !== "string") return;
-
-          const id = genId();
-          formData.append("id", id);
-
-          const todo: Todo = { id, text, completed: false };
-          this.$store.optimisticCreates = [
-            ...(this.$store.optimisticCreates as Todo[]),
-            todo,
-          ];
-          formEl.reset();
-          navigate(location.pathname, { formData });
-        },
-      };
-    });
-  </script>
-
-  <style>
-    main {
-      margin: auto;
-      padding: 1rem;
-      width: 800px;
-      max-width: calc(100% - 2rem);
-      color: white;
-      font-size: 20px;
-      line-height: 1.6;
-    }
-    h1 {
-      font-size: 4rem;
-      font-weight: 700;
-      line-height: 1;
-      text-align: center;
-      margin-bottom: 1em;
-    }
-    .text-gradient {
-      background-image: var(--accent-gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-size: 400%;
-      background-position: 0%;
-    }
-    .instructions {
-      margin-bottom: 2rem;
-      border: 1px solid rgba(var(--accent-light), 25%);
-      background: linear-gradient(
-        rgba(var(--accent-dark), 66%),
-        rgba(var(--accent-dark), 33%)
-      );
-      padding: 1.5rem;
-      border-radius: 8px;
-    }
-    .instructions code {
-      font-size: 0.8em;
-      font-weight: bold;
-      background: rgba(var(--accent-light), 12%);
-      color: rgb(var(--accent-light));
-      border-radius: 4px;
-      padding: 0.3em 0.4em;
-    }
-    .instructions strong {
-      color: rgb(var(--accent-light));
-    }
-    .link-card-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(24ch, 1fr));
-      gap: 2rem;
-      padding: 0;
-    }
-  </style>
 </Layout>
+
+<script>
+  import Alpine from "alpinejs";
+  import { navigate } from "astro:transitions/client";
+  import type { Todo } from "../store";
+  import { genId } from "../utils";
+
+  // stores stick around between renders
+  // we'll need that to avoid overriding optimistic
+  // or completed todos from the server results
+  Alpine.store("optimisticCreates", []);
+  Alpine.store("optimisticUpdates", []);
+
+  Alpine.data("form", () => {
+    return {
+      submit() {
+        const formEl = this.$el as HTMLFormElement;
+        const formData = new FormData(formEl);
+        const text = formData.get("text");
+        if (typeof text !== "string") return;
+
+        const id = genId();
+        formData.append("id", id);
+
+        const todo: Todo = { id, text, completed: false };
+        this.$store.optimisticCreates = [
+          ...(this.$store.optimisticCreates as Todo[]),
+          todo,
+        ];
+        formEl.reset();
+        navigate(location.pathname, { formData });
+      },
+    };
+  });
+</script>
+
+<style>
+  main {
+    margin: auto;
+    padding: 1rem;
+    width: 800px;
+    max-width: calc(100% - 2rem);
+    color: white;
+    font-size: 20px;
+    line-height: 1.6;
+  }
+  h1 {
+    font-size: 4rem;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    margin-bottom: 1em;
+  }
+  .text-gradient {
+    background-image: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-size: 400%;
+    background-position: 0%;
+  }
+  .instructions {
+    margin-bottom: 2rem;
+    border: 1px solid rgba(var(--accent-light), 25%);
+    background: linear-gradient(
+      rgba(var(--accent-dark), 66%),
+      rgba(var(--accent-dark), 33%)
+    );
+    padding: 1.5rem;
+    border-radius: 8px;
+  }
+  .instructions code {
+    font-size: 0.8em;
+    font-weight: bold;
+    background: rgba(var(--accent-light), 12%);
+    color: rgb(var(--accent-light));
+    border-radius: 4px;
+    padding: 0.3em 0.4em;
+  }
+  .instructions strong {
+    color: rgb(var(--accent-light));
+  }
+  .link-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(24ch, 1fr));
+    gap: 2rem;
+    padding: 0;
+  }
+</style>
