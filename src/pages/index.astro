@@ -5,7 +5,8 @@ import Layout from "../layouts/Layout.astro";
 import { todos, type Todo as TodoType } from "../store";
 import { sleep, xd } from "../utils";
 
-let newTodo: TodoType | undefined;
+let createdTodo: TodoType | undefined;
+let updatedTodo: TodoType | undefined;
 
 if (Astro.request.method === "POST") {
   await sleep(1000);
@@ -17,10 +18,11 @@ if (Astro.request.method === "POST") {
       const match = todos.find((t) => t.text === text);
       if (match) {
         match.completed = formData.get("completed") === "true";
+        updatedTodo = match;
       }
     } else {
-      newTodo = { text, completed: false };
-      todos.push(newTodo);
+      createdTodo = { text, completed: false };
+      todos.push(createdTodo);
     }
   }
 }
@@ -29,8 +31,11 @@ if (Astro.request.method === "POST") {
 <Layout title="Welcome to Astro.">
   <main
     x-data="form"
-    x-init={`$store.optimisticTodos = $store.optimisticTodos.filter((t) => t !== ${xd(
-      newTodo?.text
+    x-init={`$store.optimisticCreates = $store.optimisticCreates.filter((t) => t !== ${xd(
+      createdTodo?.text
+    )});
+    $store.optimisticUpdates = $store.optimisticUpdates.filter((t) => t.text !== ${xd(
+      updatedTodo?.text
     )});
     `}
   >
@@ -38,11 +43,6 @@ if (Astro.request.method === "POST") {
     <form method="POST" @submit.prevent=`submit` data-astro-reload>
       <input
         transition:persist
-        x-init={`
-          $store.completedTodos = new Set(${xd(
-            todos.filter((t) => t.completed)
-          )});
-        `}
         class="bg-gray-950"
         name="todo"
         type="text"
@@ -52,7 +52,7 @@ if (Astro.request.method === "POST") {
     </form>
     <ul class="flex flex-col gap-3">
       {todos.filter((t) => !t.completed).map((todo) => <Todo {...todo} />)}
-      <template x-for="todo in $store.optimisticTodos">
+      <template x-for="todo in $store.optimisticCreates">
         <Card :style={`{viewTransitionName: todo}`} class="opacity-50">
           <p x-text="todo" slot="body"></p>
         </Card>
@@ -67,12 +67,13 @@ if (Astro.request.method === "POST") {
   <script>
     import Alpine from "alpinejs";
     import { navigate } from "astro:transitions/client";
+    import type { Todo } from "../store";
 
     // stores stick around between renders
     // we'll need that to avoid overriding optimistic
     // or completed todos from the server results
-    Alpine.store("optimisticTodos", []);
-    Alpine.store("completedTodos", new Set());
+    Alpine.store("optimisticCreates", []);
+    Alpine.store("optimisticUpdates", []);
 
     Alpine.data("form", () => {
       return {
@@ -84,25 +85,13 @@ if (Astro.request.method === "POST") {
             // TODO: key generation
             // we're using the todo's text as a key.
             // we could obviously have risk of duplicates!
-            this.$store.optimisticTodos = [
-              ...(this.$store.optimisticTodos as string[]),
+            this.$store.optimisticCreates = [
+              ...(this.$store.optimisticCreates as string[]),
               todo,
             ];
             formEl.reset();
             navigate(location.pathname, { formData });
           }
-        },
-        complete(todo: string, completed: boolean) {
-          const completedTodos = this.$store.completedTodos as Set<string>;
-          if (completed) {
-            completedTodos.add(todo);
-          } else {
-            completedTodos.delete(todo);
-          }
-          const formData = new FormData();
-          formData.append("todo", todo);
-          formData.append("completed", completed ? "true" : "false");
-          navigate(window.location.pathname, { formData });
         },
       };
     });

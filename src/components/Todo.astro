@@ -9,14 +9,48 @@ const { text, completed } = Astro.props;
 ---
 
 <Card
-  @click={`complete(${xd(text)}, ${xd(!completed)})`}
+  x-data={`todo(${xd({ text, completed })})`}
+  @click="toggleCompleted"
   style={{ viewTransitionName: text }}
 >
   <p
     slot="body"
-    class:list={[completed && "line-through"]}
-    :class={`{ 'line-through': $store.completedTodos.has(${xd(text)}) }`}
+    class:list={{ "line-through": completed }}
+    :class={`{
+      'opacity-50': findOptimistic(),
+      'line-through': findOptimistic()?.completed ?? ${xd(completed)}
+    }`}
+    :disabled={`findOptimistic()`}
   >
     {text}
   </p>
 </Card>
+
+<script>
+  import Alpine from "alpinejs";
+  import type { Todo } from "../store";
+  import { navigate } from "astro:transitions/client";
+
+  Alpine.data("todo", (todo) => {
+    const { text, completed: initialCompleted } = todo as Todo;
+    return {
+      toggleCompleted() {
+        const optimisticUpdates = this.$store.optimisticUpdates as Todo[];
+        if (optimisticUpdates.find((t) => t.text === text)) {
+          // Don't allow multiple optimistic updates on same todo
+          return;
+        }
+        const completed = !initialCompleted;
+        optimisticUpdates.push({ text, completed });
+        const formData = new FormData();
+        formData.append("todo", text);
+        formData.append("completed", completed ? "true" : "false");
+        navigate(window.location.pathname, { formData });
+      },
+      findOptimistic() {
+        const optimisticUpdates = this.$store.optimisticUpdates as Todo[];
+        return optimisticUpdates.find((t) => t.text === text);
+      },
+    };
+  });
+</script>
